@@ -70,6 +70,7 @@ class FeatureExtractor:
         return length
 
     def _filter_sentence_nsubj(self, sentence: conllu.models.TokenList) -> bool:
+        # TO DO: upgrade it so it won't filter out sentences like "i see the young boy"
         """
         Checks if a sentence contains the subject which lemma is "i" or "you"
         That filter was applied in Sirts et al. (2017)
