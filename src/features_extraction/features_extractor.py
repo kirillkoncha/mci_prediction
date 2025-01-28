@@ -1,11 +1,8 @@
 import conllu
 
-from src.features_extraction.constants import (
-    DET_NO,
-    LOW_SPECIFICITY_SENTENCES,
-    PID_DEPRELS,
-    SID_NSUBJ_NO,
-)
+from src.features_extraction.constants import (DET_NO,
+                                               LOW_SPECIFICITY_SENTENCES,
+                                               PID_DEPRELS, SID_NSUBJ_NO)
 
 
 class FeatureExtractor:
@@ -45,7 +42,7 @@ class FeatureExtractor:
                 if token["deprel"] not in self.pid_deprels:
                     continue
 
-            head_lemma = sentence[token["head"] - 1]
+            head_lemma = sentence[token["head"] - 1]["lemma"]
             deprel_str = f"{token['deprel']}({token['lemma']},{head_lemma})"
 
             if deprel_str not in sid_weighted_deprels:
