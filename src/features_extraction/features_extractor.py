@@ -5,6 +5,7 @@ from src.features_extraction.constants import (
     LOW_SPECIFICITY_SENTENCES,
     PID_DEPRELS,
     SID_NSUBJ_NO,
+    STOP_WORDS
 )
 
 
@@ -15,6 +16,7 @@ class FeatureExtractor:
         self.sid_nsubj_no = SID_NSUBJ_NO
         self.det_no = DET_NO
         self.low_specificity_sentences = LOW_SPECIFICITY_SENTENCES
+        self.stop_words = STOP_WORDS
 
     def extract_pid(self, text: conllu.models.SentenceList) -> float:
         """
@@ -36,6 +38,8 @@ class FeatureExtractor:
             if not self._filter_sentence_specifity(sentence):
                 continue
             for token in sentence:
+                if token["lemma"] in self.stop_words:
+                    continue
                 if token["deprel"] == "punct":
                     continue
                 if token["deprel"] == "det" and token["lemma"] in self.det_no:
@@ -45,12 +49,10 @@ class FeatureExtractor:
                 if token["deprel"] not in self.pid_deprels:
                     continue
 
-            head_lemma = sentence[token["head"] - 1]
-            deprel_str = f"{token['deprel']}({token['lemma']},{head_lemma})"
-
-            if deprel_str not in sid_weighted_deprels:
-                sid_weighted_deprels.append(deprel_str)
-
+                head_lemma = sentence[token["head"] - 1]
+                deprel_str = f"{token['deprel']}({token['lemma']},{head_lemma})"
+                if deprel_str not in sid_weighted_deprels:
+                    sid_weighted_deprels.append(deprel_str)
         return len(sid_weighted_deprels) / token_counter
 
     def _get_sentence_length(self, sentence: conllu.models.TokenList) -> int:
