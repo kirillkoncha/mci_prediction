@@ -18,9 +18,11 @@ PID_DEPRELS = (
     "quantmod",
     "tmod",
     "vmod",
+    "case" # justify that adding
 )
 
 SID_NSUBJ_NO = ("it", "this")
 DET_NO = ("a", "an", "the")
 
-LOW_SPECIFICITY_SENTENCES = []
+LOW_SPECIFICITY_SENTENCES = ()
+STOP_WORDS = ("so") # to be added more
