@@ -1,0 +1,1 @@
+IGNORE_TOKENS = ["POSTCLITIC", "‡"]

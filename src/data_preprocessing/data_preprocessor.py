@@ -3,10 +3,13 @@ import re
 
 import pylangacq
 
+from src.data_preprocessing.constants import IGNORE_TOKENS
+
 
 class DataPreprocessor:
     def __init__(self, patient_id: str = "PAR"):
         self.patient_id = patient_id
+        self.ignore_tokens = IGNORE_TOKENS
 
     def process_file(self, file_path: str) -> dict[str, str]:
         full_speech = ""
@@ -17,14 +20,24 @@ class DataPreprocessor:
 
         for utterance in data.utterances():
             if utterance.participant == self.patient_id:
-                #speech = utterance.tiers["PAR"]
-                #speech = self.clean_speech_line(speech)
-                #full_speech = " ".join([full_speech, speech])
-                tokens = utterance.tokens
-                for token in tokens:
-                    if token.word != "POSTCLITIC":
-                        full_speech = " ".join([full_speech, token.word])
+                text = self.get_text(utterance.tokens)
+                full_speech = " ".join([full_speech, text])
         return {"id": id_, "diagnosis": diagnosis, "speech": full_speech.strip()}
+
+    def get_text(self, tokens):
+        full_speech = ""
+        for token in tokens:
+            if token.word not in self.ignore_tokens:
+                if "_" in token.word:
+                    words = [full_speech]
+                    words.extend(token.word.split("_"))
+                    full_speech = " ".join(words)
+                # study more tokens of uncomprehensible speech and change them to one tag as well
+                elif token.pos == "neo":
+                    full_speech = " ".join([full_speech, "NEO"])
+                else:
+                    full_speech = " ".join([full_speech, token.word])
+        return full_speech
 
     @staticmethod
     def clean_speech_line(text: str) -> str:

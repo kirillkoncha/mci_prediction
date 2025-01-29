@@ -37,16 +37,16 @@ class FeatureExtractor:
                     continue
                 if token["deprel"] == "det" and token["lemma"] in self.det_no:
                     continue
-                if token["deprel"] == "nsubj" and token["lemma"] in self.nsubj_no:
+                if token["deprel"] == "nsubj" and token["lemma"] in self.sid_nsubj_no:
                     continue
                 if token["deprel"] not in self.pid_deprels:
                     continue
 
-            head_lemma = sentence[token["head"] - 1]["lemma"]
-            deprel_str = f"{token['deprel']}({token['lemma']},{head_lemma})"
+                head_lemma = sentence[token["head"] - 1]["lemma"]
+                deprel_str = f"{token['deprel']}({token['lemma']},{head_lemma})"
 
-            if deprel_str not in sid_weighted_deprels:
-                sid_weighted_deprels.append(deprel_str)
+                if deprel_str not in sid_weighted_deprels:
+                    sid_weighted_deprels.append(deprel_str)
 
         return len(sid_weighted_deprels) / token_counter
 
