@@ -35,15 +35,15 @@ class FeatureExtractor:
             for token in sentence:
                 if token["deprel"] == "punct":
                     continue
-                if token["deprel"] == "det" and token["lemma"] in self.det_no:
+                if token["deprel"] == "det" and token["lemma"].lower() in self.det_no:
                     continue
-                if token["deprel"] == "nsubj" and token["lemma"] in self.sid_nsubj_no:
+                if token["deprel"] == "nsubj" and token["lemma"].lower() in self.sid_nsubj_no:
                     continue
                 if token["deprel"] not in self.pid_deprels:
                     continue
 
-                head_lemma = sentence[token["head"] - 1]["lemma"]
-                deprel_str = f"{token['deprel']}({token['lemma']},{head_lemma})"
+                head_lemma = sentence[token["head"] - 1]["lemma"].lower()
+                deprel_str = f"{token['deprel']}({token['lemma'].lower()},{head_lemma})"
 
                 if deprel_str not in sid_weighted_deprels:
                     sid_weighted_deprels.append(deprel_str)
@@ -83,6 +83,7 @@ class FeatureExtractor:
                 token["deprel"] == "nsubj"
                 and token["upos"] == "PRON"
                 and token["lemma"].split("'")[0].lower() in ["i", "you"]
+                and sentence[token["head"]-1]["deprel"] == "root"
             ):
                 return False
         return True
