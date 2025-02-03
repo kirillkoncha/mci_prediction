@@ -1,8 +1,11 @@
 import conllu
 
-from src.features_extraction.constants import (DET_NO,
-                                               LOW_SPECIFICITY_SENTENCES,
-                                               PID_DEPRELS, SID_NSUBJ_NO)
+from src.features_extraction.constants import (
+    DET_NO,
+    LOW_SPECIFICITY_SENTENCES,
+    PID_DEPRELS,
+    SID_NSUBJ_NO,
+)
 
 
 class FeatureExtractor:
@@ -37,7 +40,10 @@ class FeatureExtractor:
                     continue
                 if token["deprel"] == "det" and token["lemma"].lower() in self.det_no:
                     continue
-                if token["deprel"] == "nsubj" and token["lemma"].lower() in self.sid_nsubj_no:
+                if (
+                    token["deprel"] == "nsubj"
+                    and token["lemma"].lower() in self.sid_nsubj_no
+                ):
                     continue
                 if token["deprel"] not in self.pid_deprels:
                     continue
@@ -83,7 +89,7 @@ class FeatureExtractor:
                 token["deprel"] == "nsubj"
                 and token["upos"] == "PRON"
                 and token["lemma"].split("'")[0].lower() in ["i", "you"]
-                and sentence[token["head"]-1]["deprel"] == "root"
+                and sentence[token["head"] - 1]["deprel"] == "root"
             ):
                 return False
         return True

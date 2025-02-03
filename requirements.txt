@@ -3,3 +3,5 @@ spacy-stanza==1.0.4
 spacy-conll==4.0.1
 conllu==6.0.0
 pylangacq
+tqdm
+pandas

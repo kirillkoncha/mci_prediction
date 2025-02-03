@@ -1,26 +1,28 @@
-PID_DEPRELS = (
-    "advcl",
-    "advmod",
-    "amod",
-    "appos",
-    # "cc", is exlcuded in the paper
-    "csubj",
-    "csubjpass",
-    "det",
-    "neg",
-    "npadvmod",
-    "nsubj",
-    "nummod",
-    "poss",
-    "predet",
-    "preconj",
-    "prep",
-    "quantmod",
-    "tmod",
-    "vmod",
+PID_DEPRELS = frozenset(
+    (
+        "advcl",
+        "advmod",
+        "amod",
+        "appos",
+        # "cc", is exlcuded in the paper
+        "csubj",
+        "csubjpass",
+        "det",
+        "neg",
+        "npadvmod",
+        "nsubj",
+        "nummod",
+        "poss",
+        "predet",
+        "preconj",
+        "prep",
+        "quantmod",
+        "tmod",
+        "vmod",
+    )
 )
 
-SID_NSUBJ_NO = ("it", "this")
-DET_NO = ("a", "an", "the")
+SID_NSUBJ_NO = frozenset(("it", "this"))
+DET_NO = frozenset(("a", "an", "the"))
 
-LOW_SPECIFICITY_SENTENCES = []
+LOW_SPECIFICITY_SENTENCES = frozenset(())
