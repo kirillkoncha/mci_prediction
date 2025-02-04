@@ -1,11 +1,8 @@
 import conllu
 
-from src.features_extraction.constants import (
-    DET_NO,
-    LOW_SPECIFICITY_SENTENCES,
-    PID_DEPRELS,
-    SID_NSUBJ_NO,
-)
+from src.features_extraction.constants import (DET_NO,
+                                               LOW_SPECIFICITY_SENTENCES,
+                                               PID_DEPRELS, SID_NSUBJ_NO)
 
 
 class FeatureExtractor:
@@ -16,7 +13,7 @@ class FeatureExtractor:
         self.det_no = DET_NO
         self.low_specificity_sentences = LOW_SPECIFICITY_SENTENCES
 
-    def extract_pid(self, text: conllu.models.SentenceList) -> float:
+    def extract_pid(self, text: str) -> float:
         """
         Counts Propositional Idea Density according to Sirts et al. (2017)
 
@@ -28,6 +25,7 @@ class FeatureExtractor:
         """
         sid_weighted_deprels = []
         token_counter = 0
+        text = conllu.parse(text)
 
         for sentence in text:
             token_counter += self._get_sentence_length(sentence)

@@ -1,3 +1,6 @@
 .idea/
 *.DS_STORE
+*.json
+*.csv
+*.txt
 __pycache__

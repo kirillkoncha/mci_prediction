@@ -2,18 +2,16 @@ import json
 import os
 import re
 from glob import glob
+from string import punctuation
 from typing import Union
 
 import pandas as pd
 import pylangacq
 from tqdm import tqdm
 
-from src.data_preprocessing.constants import (
-    IGNORE_POS,
-    IGNORE_TOKENS,
-    NEOLOGISMS,
-    PUNCT_REPLACEMENTS,
-)
+from src.data_preprocessing.constants import (IGNORE_POS, IGNORE_TOKENS,
+                                              NEOLOGISMS, PUNCT_REPLACEMENTS)
+from src.ud_annotation.ud_annotator import UDAnnotator
 
 
 class DataPreprocessor:
@@ -28,6 +26,7 @@ class DataPreprocessor:
         self.punct_replacements = PUNCT_REPLACEMENTS
         self.neologisms = NEOLOGISMS
         self.allowed_labels = allowed_labels
+        self.ud_annotator = UDAnnotator()
 
     def process_dataset(
         self, dataset_path: str, output_path: str, return_output: bool = False
@@ -60,7 +59,15 @@ class DataPreprocessor:
             if utterance.participant == self.patient_id:
                 text = self.get_text(utterance.tokens)
                 full_speech = " ".join([full_speech, text])
-        return {"id": id_, "diagnosis": diagnosis, "speech": full_speech.strip()}
+                # Change several spaces to only one
+                full_speech = re.sub(r"\s+", " ", full_speech)
+                full_speech = full_speech.strip()
+        return {
+            "id": id_,
+            "diagnosis": diagnosis,
+            "speech": full_speech,
+            "annotation": self.ud_annotator.annotate_text(full_speech),
+        }
 
     def get_unique_pos(
         self, file_path: str, output_json: str, return_output: bool = False
@@ -90,10 +97,6 @@ class DataPreprocessor:
             if token.word not in self.ignore_tokens:
                 if token.word in self.ignore_tokens or token.pos in self.ignore_pos:
                     continue
-                if token.pos in self.punct_replacements:
-                    full_speech = " ".join(
-                        [full_speech, self.punct_replacements[token.word]]
-                    )
                 if "_" in token.word:
                     words = [full_speech]
                     words.extend(token.word.split("_"))
@@ -101,8 +104,29 @@ class DataPreprocessor:
                 # study more tokens of uncomprehensible speech and change them to one tag as well
                 elif token.pos == self.neologisms:
                     full_speech = " ".join([full_speech, "NEO"])
+                elif token.pos in self.punct_replacements:
+                    full_speech = " ".join(
+                        [full_speech, self.punct_replacements[token.pos]]
+                    )
                 else:
                     full_speech = " ".join([full_speech, token.word])
+
+        # If the punctuation is only what left from a sentence, filter it
+        if (
+            len(
+                full_speech.translate(str.maketrans("", "", punctuation)).replace(
+                    " ", ""
+                )
+            )
+            == 0
+        ):
+            full_speech = ""
+        if full_speech.startswith(","):
+            full_speech = full_speech[1:]
+        if full_speech.strip() == "my .":
+            full_speech = ""
+        # Change several spaces to only one
+        full_speech = re.sub(r"\s+", " ", full_speech)
         return full_speech
 
     @staticmethod

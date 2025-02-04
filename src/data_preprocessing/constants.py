@@ -1,9 +1,4 @@
-IGNORE_TOKENS = frozenset(
-    (
-        "POSTCLITIC",
-        "‡"
-    )
-)
+IGNORE_TOKENS = frozenset(("POSTCLITIC", "‡"))
 #        "uh",
 #        "um",
 #        "er",
@@ -40,6 +35,7 @@ IGNORE_POS = frozenset(("n:let", "beg", "end", "on", "co"))
 NEOLOGISMS = frozenset(("uni", "neo"))
 
 PUNCT_REPLACEMENTS = {
+    '+"/.': ".",
     "+/.": ".",
     "+//?": "?",
     "+/?": "?",
