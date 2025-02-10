@@ -5,3 +5,4 @@ conllu==6.0.0
 pylangacq
 tqdm
 pandas
+pycpidr
