@@ -1,19 +1,54 @@
+import ast
 import conllu
-
+import nltk
+import numpy as np
+import pandas as pd
 from pycpidr import depid
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_distances
 
-from src.features_extraction.constants import (DET_NO,
-                                               LOW_SPECIFICITY_SENTENCES,
-                                               PID_DEPRELS, SID_NSUBJ_NO)
+from src.features_extraction.constants import (
+    LOW_SPECIFICITY_SENTENCES,
+    PATH_TO_WORD_CLUSTERS,
+)
+
+nltk.download("punkt")
+nltk.download("punkt_tab")
 
 
 class FeaturesExtractor:
-    def __init__(self):
-        self.pid_deprels = PID_DEPRELS
-
-        self.sid_nsubj_no = SID_NSUBJ_NO
-        self.det_no = DET_NO
+    def __init__(self, sentence_embeddings_model: str = None):
         self.low_specificity_sentences = LOW_SPECIFICITY_SENTENCES
+        self.sentence_embeddings_model = sentence_embeddings_model
+        self.cluster_words = pd.read_csv(PATH_TO_WORD_CLUSTERS)
+        self.cluster_words["words"] = self.cluster_words["words"].apply(
+            ast.literal_eval
+        )
+        self.sid_icus = []
+
+        for word_list in self.cluster_words["words"].to_list():
+            self.sid_icus.extend(word_list)
+
+    def extract_sentence_embeddings(
+        self, text: str, model: str = "sentence-transformers/all-mpnet-base-v2"
+    ) -> float:
+        if self.sentence_embeddings_model is None:
+            self.sentence_embeddings_model = SentenceTransformer(model)
+
+        sentences = nltk.sent_tokenize(text)
+
+        if len(sentences) < 2:
+            return 0
+
+        embeddings = self.sentence_embeddings_model.encode(sentences)
+
+        distances = cosine_distances(embeddings)
+
+        n = len(sentences)
+        upper_tri_indices = np.triu_indices(n, k=1)
+        mean_distance = distances[upper_tri_indices].mean()
+
+        return mean_distance
 
     def extract_tree_depth(self, text: str) -> float:
         text = conllu.parse(text)
@@ -22,7 +57,52 @@ class FeaturesExtractor:
         for sentence in text:
             depth += self._extract_one_tree_depth(sentence)
 
-        return depth/len(text)
+        return depth / len(text)
+
+    def extract_verbs_with_inflections(self, conllu_annotation: str):
+        token_counter = 0
+        verbs_number = 0
+
+        text_conllu = conllu.parse(conllu_annotation)
+        for sentence in text_conllu:
+            token_counter += self._get_sentence_length(sentence)
+            for token in sentence:
+                if token["form"] != token["lemma"]:
+                    verbs_number += 1
+        if token_counter == 0:
+            return 0.0
+        return verbs_number / token_counter
+
+    def extract_nouns_with_determiners(self, conllu_annotation: str) -> float:
+        token_counter = 0
+        nouns_with_determiners = 0
+
+        text_conllu = conllu.parse(conllu_annotation)
+        for sentence in text_conllu:
+            token_counter += self._get_sentence_length(sentence)
+            for token in sentence:
+                if (
+                    token["upos"] == "DET"
+                    and sentence[token["head"] - 1]["upos"] == "NOUN"
+                ):
+                    nouns_with_determiners += 1
+        if token_counter == 0:
+            return 0.0
+        return nouns_with_determiners / token_counter
+
+    def extract_sid(self, conllu_annotation: str) -> float:
+        sid_score = 0
+        token_counter = 0
+
+        text_conllu = conllu.parse(conllu_annotation)
+        for sentence in text_conllu:
+            token_counter += self._get_sentence_length(sentence)
+            for token in sentence:
+                if token["lemma"].lower() in self.sid_icus:
+                    sid_score += 1
+        if token_counter == 0:
+            return 0.0
+        return sid_score / token_counter
 
     def extract_pid(self, text: str) -> float:
         """

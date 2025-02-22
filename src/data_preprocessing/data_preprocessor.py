@@ -9,8 +9,12 @@ import pandas as pd
 import pylangacq
 from tqdm import tqdm
 
-from src.data_preprocessing.constants import (IGNORE_POS, IGNORE_TOKENS,
-                                              NEOLOGISMS, PUNCT_REPLACEMENTS)
+from src.data_preprocessing.constants import (
+    IGNORE_POS,
+    IGNORE_TOKENS,
+    NEOLOGISMS,
+    PUNCT_REPLACEMENTS,
+)
 from src.ud_annotation.ud_annotator import UDAnnotator
 
 
@@ -46,6 +50,8 @@ class DataPreprocessor:
 
     def process_file(self, file_path: str) -> Union[dict[str, str], None]:
         full_speech = ""
+        on = 0
+        co = 0
         data = pylangacq.read_chat(file_path)
         headers = data.headers()[0]
         diagnosis = headers["Participants"]["PAR"]["group"]
@@ -53,11 +59,16 @@ class DataPreprocessor:
         if diagnosis not in self.allowed_labels:
             return None
 
-        id_ = os.path.basename(file_path.split(".")[0])
+        if diagnosis in ["PossibleAD", "ProbableAD"]:
+            diagnosis = "AD"
 
-        for utterance in data.utterances():
+        id_ = os.path.basename(file_path.split(".")[0])
+        utterances = data.utterances()
+        for utterance in utterances:
             if utterance.participant == self.patient_id:
-                text = self.get_text(utterance.tokens)
+                text, on_sentence, co_sentence = self.get_text(utterance.tokens)
+                on += on_sentence
+                co += co_sentence
                 full_speech = " ".join([full_speech, text])
                 # Change several spaces to only one
                 full_speech = re.sub(r"\s+", " ", full_speech)
@@ -67,6 +78,8 @@ class DataPreprocessor:
             "diagnosis": diagnosis,
             "speech": full_speech,
             "annotation": self.ud_annotator.annotate_text(full_speech),
+            "on": on / len(utterances),
+            "co": co / len(utterances),
         }
 
     def get_unique_pos(
@@ -93,9 +106,15 @@ class DataPreprocessor:
 
     def get_text(self, tokens):
         full_speech = ""
+        on = 0
+        co = 0
         for idx, token in enumerate(tokens):
             if token.word not in self.ignore_tokens:
                 if token.word in self.ignore_tokens or token.pos in self.ignore_pos:
+                    if token.pos == "on":
+                        on += 1
+                    if token.pos == "co":
+                        co += 1
                     continue
                 if "_" in token.word:
                     words = [full_speech]
@@ -127,7 +146,7 @@ class DataPreprocessor:
             full_speech = ""
         # Change several spaces to only one
         full_speech = re.sub(r"\s+", " ", full_speech)
-        return full_speech
+        return full_speech, on, co
 
     @staticmethod
     def clean_speech_line(text: str) -> str:
