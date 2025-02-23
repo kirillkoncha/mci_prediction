@@ -1,4 +1,5 @@
 import ast
+
 import conllu
 import nltk
 import numpy as np
@@ -7,10 +8,8 @@ from pycpidr import depid
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_distances
 
-from src.features_extraction.constants import (
-    LOW_SPECIFICITY_SENTENCES,
-    PATH_TO_WORD_CLUSTERS,
-)
+from src.features_extraction.constants import (LOW_SPECIFICITY_SENTENCES,
+                                               PATH_TO_WORD_CLUSTERS)
 
 nltk.download("punkt")
 nltk.download("punkt_tab")
