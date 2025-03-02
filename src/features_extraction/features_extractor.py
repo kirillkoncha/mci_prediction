@@ -4,12 +4,15 @@ import conllu
 import nltk
 import numpy as np
 import pandas as pd
+import spacy
 from pycpidr import depid
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_distances
 
-from src.features_extraction.constants import (LOW_SPECIFICITY_SENTENCES,
-                                               PATH_TO_WORD_CLUSTERS)
+from src.features_extraction.constants import (
+    LOW_SPECIFICITY_SENTENCES,
+    PATH_TO_WORD_CLUSTERS,
+)
 
 nltk.download("punkt")
 nltk.download("punkt_tab")
@@ -27,6 +30,11 @@ class FeaturesExtractor:
 
         for word_list in self.cluster_words["words"].to_list():
             self.sid_icus.extend(word_list)
+
+        nltk.download("stopwords")
+        from nltk.corpus import stopwords
+
+        self.stop_words = set(stopwords.words("english"))
 
     def extract_sentence_embeddings(
         self, text: str, model: str = "sentence-transformers/all-mpnet-base-v2"
@@ -49,16 +57,32 @@ class FeaturesExtractor:
 
         return mean_distance
 
+    def extract_stop_words(self, conllu_annotation: str) -> float:
+        text = conllu.parse(conllu_annotation)
+        token_counter = 0
+        stop_words = 0
+
+        for sentence in text:
+            token_counter += self._get_sentence_length(sentence)
+            for token in sentence:
+                if token["lemma"] in self.stop_words:
+                    stop_words += 1
+
+        if token_counter == 0:
+            return 0.0
+        return stop_words / token_counter
+
     def extract_tree_depth(self, text: str) -> float:
         text = conllu.parse(text)
         depth = 0
 
         for sentence in text:
             depth += self._extract_one_tree_depth(sentence)
-
+        if depth == 0:
+            return 0.0
         return depth / len(text)
 
-    def extract_verbs_with_inflections(self, conllu_annotation: str):
+    def extract_verbs_with_inflections(self, conllu_annotation: str) -> float:
         token_counter = 0
         verbs_number = 0
 
@@ -103,6 +127,18 @@ class FeaturesExtractor:
             return 0.0
         return sid_score / token_counter
 
+    def extract_sid_efficiency(self, conllu_annotation: str, time: float) -> float:
+        sid_score = 0
+
+        text_conllu = conllu.parse(conllu_annotation)
+        for sentence in text_conllu:
+            for token in sentence:
+                if token["lemma"].lower() in self.sid_icus:
+                    sid_score += 1
+        if time == 0:
+            return 0.0
+        return sid_score / time
+
     def extract_pid(self, text: str) -> float:
         """
         Counts Propositional Idea Density according to Sirts et al. (2017)
@@ -115,6 +151,7 @@ class FeaturesExtractor:
         """
         text = conllu.parse(text)
         score = 0
+        spacy.load("en_core_web_sm")
         for sentence in text:
             if not self._filter_sentence_nsubj(sentence):
                 continue
@@ -123,6 +160,21 @@ class FeaturesExtractor:
             pid, _, _ = depid(sentence.metadata["text"], is_depid_r=True)
             score += pid
         return score / len(text)
+
+    def extract_pid_efficiency(self, conllu_annotation: str, time: float) -> float:
+        text_conllu = conllu.parse(conllu_annotation)
+        pid_score = 0
+        for sentence in text_conllu:
+            if not self._filter_sentence_nsubj(sentence):
+                continue
+            if not self._filter_sentence_specifity(sentence):
+                continue
+            _, _, dependencies = depid(sentence.metadata["text"], is_depid_r=True)
+            pid_score += len(dependencies)
+
+        if time == 0:
+            return 0.0
+        return pid_score / time
 
     def _get_sentence_length(self, sentence: conllu.models.TokenList) -> int:
         """

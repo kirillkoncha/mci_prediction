@@ -1,11 +1,13 @@
+import spacy_udpipe
 from spacy_conll import init_parser
 
 
 class UDAnnotator:
     def __init__(self, lang: str = "en", use_gpu: bool = False):
+        spacy_udpipe.download("en")
         self.nlp = init_parser(
             lang,
-            "udpipe",
+            "stanza",
             parser_opts={"use_gpu": use_gpu, "verbose": False},
             include_headers=True,
         )

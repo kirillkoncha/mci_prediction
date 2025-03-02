@@ -9,8 +9,12 @@ import pandas as pd
 import pylangacq
 from tqdm import tqdm
 
-from src.data_preprocessing.constants import (IGNORE_POS, IGNORE_TOKENS,
-                                              NEOLOGISMS, PUNCT_REPLACEMENTS)
+from src.data_preprocessing.constants import (
+    IGNORE_POS,
+    IGNORE_TOKENS,
+    NEOLOGISMS,
+    PUNCT_REPLACEMENTS,
+)
 from src.ud_annotation.ud_annotator import UDAnnotator
 
 
@@ -42,7 +46,7 @@ class DataPreprocessor:
         df = pd.DataFrame(data)
         df.to_csv(output_path, index=False)
         if return_output:
-            return data
+            return df
 
     def process_file(self, file_path: str) -> Union[dict[str, str], None]:
         full_speech = ""
@@ -51,17 +55,22 @@ class DataPreprocessor:
         data = pylangacq.read_chat(file_path)
         headers = data.headers()[0]
         diagnosis = headers["Participants"]["PAR"]["group"]
+        total_speaking_time = 0
 
         if diagnosis not in self.allowed_labels:
             return None
 
-        if diagnosis in ["PossibleAD", "ProbableAD"]:
+        if "AD" in diagnosis:
             diagnosis = "AD"
 
         id_ = os.path.basename(file_path.split(".")[0])
         utterances = data.utterances()
         for utterance in utterances:
             if utterance.participant == self.patient_id:
+                time_marks = utterance.time_marks
+                if time_marks:
+                    start_time, end_time = time_marks
+                    total_speaking_time += (end_time - start_time)
                 text, on_sentence, co_sentence = self.get_text(utterance.tokens)
                 on += on_sentence
                 co += co_sentence
@@ -74,6 +83,7 @@ class DataPreprocessor:
             "diagnosis": diagnosis,
             "speech": full_speech,
             "annotation": self.ud_annotator.annotate_text(full_speech),
+            "speaking time (s)": total_speaking_time / 1000,
             "on": on / len(utterances),
             "co": co / len(utterances),
         }

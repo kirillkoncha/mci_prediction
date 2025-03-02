@@ -1,6 +1,6 @@
 import conllu
-import nltk
 import fasttext
+import nltk
 import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
@@ -11,9 +11,10 @@ class KMeansFeatures:
     def __init__(self, model_path: str = "./data/cc.en.300.bin"):
         self.model = fasttext.load_model(model_path)
 
-        nltk.download('stopwords')
+        nltk.download("stopwords")
         from nltk.corpus import stopwords
-        self.stop_words = set(stopwords.words('english'))
+
+        self.stop_words = set(stopwords.words("english"))
 
     def extract_vectors_for_sid(
         self,
@@ -50,7 +51,7 @@ class KMeansFeatures:
         vectors_df: pd.DataFrame,
         n_clusters: int,
         output_path: str,
-        return_output: bool = False,
+        return_output: bool = True,
         save_output: bool = False,
     ):
         cluster_words = {"cluster": [], "words": []}
