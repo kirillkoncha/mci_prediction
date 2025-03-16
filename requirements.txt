@@ -13,3 +13,4 @@ scikit-learn
 numpy
 fasttext-wheel
 gensim
+morphemes

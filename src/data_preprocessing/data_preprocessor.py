@@ -9,12 +9,8 @@ import pandas as pd
 import pylangacq
 from tqdm import tqdm
 
-from src.data_preprocessing.constants import (
-    IGNORE_POS,
-    IGNORE_TOKENS,
-    NEOLOGISMS,
-    PUNCT_REPLACEMENTS,
-)
+from src.data_preprocessing.constants import (IGNORE_POS, IGNORE_TOKENS,
+                                              NEOLOGISMS, PUNCT_REPLACEMENTS)
 from src.ud_annotation.ud_annotator import UDAnnotator
 
 

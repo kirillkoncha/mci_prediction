@@ -5,14 +5,13 @@ import nltk
 import numpy as np
 import pandas as pd
 import spacy
+from morphemes import Morphemes
 from pycpidr import depid
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_distances
 
-from src.features_extraction.constants import (
-    LOW_SPECIFICITY_SENTENCES,
-    PATH_TO_WORD_CLUSTERS,
-)
+from src.features_extraction.constants import (LOW_SPECIFICITY_SENTENCES,
+                                               PATH_TO_WORD_CLUSTERS)
 
 nltk.download("punkt")
 nltk.download("punkt_tab")
@@ -33,7 +32,7 @@ class FeaturesExtractor:
 
         nltk.download("stopwords")
         from nltk.corpus import stopwords
-
+        self.morphemes = Morphemes("./morphemes_data")
         self.stop_words = set(stopwords.words("english"))
 
     def extract_sentence_embeddings(
@@ -56,6 +55,23 @@ class FeaturesExtractor:
         mean_distance = distances[upper_tri_indices].mean()
 
         return mean_distance
+
+    def extract_mlu(self, conllu_annotation: str) -> float:
+        text = conllu.parse(conllu_annotation)
+        token_counter = 0
+        morpheme_counter = 0
+
+        for sentence in text:
+            token_counter += self._get_sentence_length(sentence)
+            for token in sentence:
+                if token["deprel"] != "punct":
+                    morpheme_counter += self.morphemes.parse(token["form"])["morpheme_count"]
+
+        if token_counter == 0:
+            return 0.0
+
+        return morpheme_counter / token_counter
+
 
     def extract_stop_words(self, conllu_annotation: str) -> float:
         text = conllu.parse(conllu_annotation)
