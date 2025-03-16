@@ -11,3 +11,4 @@ vis
 *.jpg
 *jpeg
 *morphemes_data
+*ipynb_checkpoints
