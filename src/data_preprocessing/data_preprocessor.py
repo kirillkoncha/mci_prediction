@@ -9,8 +9,12 @@ import pandas as pd
 import pylangacq
 from tqdm import tqdm
 
-from src.data_preprocessing.constants import (IGNORE_POS, IGNORE_TOKENS,
-                                              NEOLOGISMS, PUNCT_REPLACEMENTS)
+from src.data_preprocessing.constants import (
+    IGNORE_POS,
+    IGNORE_TOKENS,
+    NEOLOGISMS,
+    PUNCT_REPLACEMENTS,
+)
 from src.ud_annotation.ud_annotator import UDAnnotator
 
 
@@ -30,7 +34,28 @@ class DataPreprocessor:
 
     def process_dataset(
         self, dataset_path: str, output_path: str, return_output: bool = False
-    ):
+    ) -> Union[pd.DataFrame, None]:
+        """
+        Process whole dataset. Dataset should have the following structure:
+            root
+                controls
+                    .cha
+                    .cha
+                    ...
+                dementia
+                    .cha
+                    .cha
+                    ...
+
+        Args:
+            dataset_path (str): Path to folder with dataset
+            output_path (str): Path to save results
+            return_output (bool): Returns results to a variable if is True
+
+        Returns:
+            pd.DataFrame | None: Returns pd.DataFrame if return_output is set to true
+            or None otherwise
+        """
         data = []
         files_to_process = glob(os.path.join(dataset_path, "*", "*.cha"))
 
@@ -44,7 +69,17 @@ class DataPreprocessor:
         if return_output:
             return df
 
-    def process_file(self, file_path: str) -> Union[dict[str, str], None]:
+    def process_file(self, file_path: str) -> Union[dict[str, Union[str, float]], None]:
+        """
+        Process file with participants data (participants should be Controls, MCI, or AD)
+
+        Args:
+            file_path (str): Path to .cha file
+
+        Returns:
+            dict[str, str | float] | None: Dictionary with participants data and processed utterances
+            or None if participants does not belong to Control, MCI, or AD group
+        """
         full_speech = ""
         on = 0
         co = 0
@@ -66,7 +101,7 @@ class DataPreprocessor:
                 time_marks = utterance.time_marks
                 if time_marks:
                     start_time, end_time = time_marks
-                    total_speaking_time += (end_time - start_time)
+                    total_speaking_time += end_time - start_time
                 text, on_sentence, co_sentence = self.get_text(utterance.tokens)
                 on += on_sentence
                 co += co_sentence
@@ -86,7 +121,19 @@ class DataPreprocessor:
 
     def get_unique_pos(
         self, file_path: str, output_json: str, return_output: bool = False
-    ):
+    ) -> Union[None, dict[str, str]]:
+        """
+        Function to get unique POS tags and participants who use them
+
+        Args:
+            file_path (str): Path to Pitt Corpus
+            output_json (str): Path to output file
+            return_output (bool): Returns results to a variable if is True
+
+        Returns:
+            dict[str, str] | None: Dictionary with POS tags as keys and participants who use them as values
+            or None if return_output is set to False
+        """
         pos = {}
         files = glob(os.path.join(file_path, "*", "*.cha"))
         for file in tqdm(files):
@@ -106,7 +153,20 @@ class DataPreprocessor:
         if return_output:
             return pos
 
-    def get_text(self, tokens):
+    def get_text(
+        self, tokens: list[pylangacq.objects.Token]
+    ) -> tuple[str, float, float]:
+        """
+        Function to process single text. Filters out POS and tokens that should be ignored;
+        replaces neologisms with word NEO; counts interjections/interactions and onomatopoeia
+        rates per text
+
+        Args:
+            tokens (list): List of tokens from pylangacq
+
+        Returns:
+            tuple[str, float, float]: Preprocessed utterance, interjections/interactions rate, onomatopoeia rate
+        """
         full_speech = ""
         on = 0
         co = 0
@@ -122,7 +182,6 @@ class DataPreprocessor:
                     words = [full_speech]
                     words.extend(token.word.split("_"))
                     full_speech = " ".join(words)
-                # study more tokens of uncomprehensible speech and change them to one tag as well
                 elif token.pos == self.neologisms:
                     full_speech = " ".join([full_speech, "NEO"])
                 elif token.pos in self.punct_replacements:
@@ -149,25 +208,3 @@ class DataPreprocessor:
         # Change several spaces to only one
         full_speech = re.sub(r"\s+", " ", full_speech)
         return full_speech, on, co
-
-    @staticmethod
-    def clean_speech_line(text: str) -> str:
-        # Remove timestamps like 39140_42140
-        text = re.sub(r"\d+_\d+", "", text)
-        # Remove symbols like &-uh, &+flow
-        text = re.sub(r"&[-+]", "", text)
-        # Step 1: Remove content within < > and keep the text inside
-        text = re.sub(r"<([^>]+)>", r"\1", text)
-        # Step 2: Remove [+ exc] and similar patterns within [ ]
-        text = re.sub(r"\[[^\]]+\]", "", text)
-        # Step 3: Remove [//]
-        text = re.sub(r"\[//\]", "", text)
-        # Remove parentheses but keep the content inside
-        text = re.sub(r"\(([^)]+)\)", r"\1", text)
-        # Remove leading "+" or "+" followed by spaces (e.g., "+<" or "+ text")
-        text = re.sub(r"^\+|\+\s*", "", text)
-        # Remove any remaining non-alphabetic characters (except spaces, periods, and apostrophes)
-        text = re.sub(r"[^a-zA-Z\s.\']", "", text)
-        # Remove extra spaces
-        text = " ".join(text.split())
-        return text.strip()

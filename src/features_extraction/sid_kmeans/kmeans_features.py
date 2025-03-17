@@ -23,6 +23,20 @@ class KMeansFeatures:
         return_output: bool = True,
         save_output: bool = False,
     ):
+        """
+        Extracts fastText embeddings for nouns and verbs
+
+        Args:
+            annotations (list[str]): List of annotated texts in CoNLL-U format
+            output_path (str): File path to save the output CSV (if save_output is True)
+            return_output (bool, optional): If set to True, return the extracted vectors
+            save_output (bool, optional): If set to True, saves the extracted embeddings as a CSV file
+
+        Returns:
+            pd.DataFrame | None: DataFrame containing words and their corresponding vectors,
+            or None if return_output is False.
+        """
+
         vectors = {"word": [], "vector": []}
 
         for text in annotations:
@@ -54,6 +68,21 @@ class KMeansFeatures:
         return_output: bool = True,
         save_output: bool = False,
     ):
+        """
+        K-Means clustering on word vectors; extracts ICUs based on clustering (words within 3 standard
+        deviations for each cluster)
+
+        Args:
+            vectors_df (pd.DataFrame): DataFrame containing word vectors with a "vector" column
+            n_clusters (int): Number of clusters to generate
+            output_path (str): File path to save the output CSV (if save_output is True)
+            return_output (bool, optional): If True, returns the clustering results. Defaults to True
+            save_output (bool, optional): If True, saves the results as a CSV file. Defaults to False
+
+        Returns:
+            pd.DataFrame | None: DataFrame containing clusters and their ICUs,
+            or None if return_output is False
+        """
         cluster_words = {"cluster": [], "words": []}
 
         X = np.vstack(vectors_df["vector"].values)

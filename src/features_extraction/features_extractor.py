@@ -10,8 +10,10 @@ from pycpidr import depid
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_distances
 
-from src.features_extraction.constants import (LOW_SPECIFICITY_SENTENCES,
-                                               PATH_TO_WORD_CLUSTERS)
+from src.features_extraction.constants import (
+    LOW_SPECIFICITY_SENTENCES,
+    PATH_TO_WORD_CLUSTERS,
+)
 
 nltk.download("punkt")
 nltk.download("punkt_tab")
@@ -32,12 +34,23 @@ class FeaturesExtractor:
 
         nltk.download("stopwords")
         from nltk.corpus import stopwords
+
         self.morphemes = Morphemes("./morphemes_data")
         self.stop_words = set(stopwords.words("english"))
 
     def extract_sentence_embeddings(
         self, text: str, model: str = "sentence-transformers/all-mpnet-base-v2"
     ) -> float:
+        """
+        Extracts mean pairwise distance between sentence embeddings
+
+        Args:
+            text (str): Text speech
+            model (str): HuggingFace model path
+
+        Returns:
+            float: Mean pairwise distance between embeddings of text sentences
+        """
         if self.sentence_embeddings_model is None:
             self.sentence_embeddings_model = SentenceTransformer(model)
 
@@ -65,15 +78,25 @@ class FeaturesExtractor:
             token_counter += self._get_sentence_length(sentence)
             for token in sentence:
                 if token["deprel"] != "punct":
-                    morpheme_counter += self.morphemes.parse(token["form"])["morpheme_count"]
+                    morpheme_counter += self.morphemes.parse(token["form"])[
+                        "morpheme_count"
+                    ]
 
         if token_counter == 0:
             return 0.0
 
         return morpheme_counter / token_counter
 
-
     def extract_stop_words(self, conllu_annotation: str) -> float:
+        """
+        Extracts number of stopwords per number of tokens
+
+        Args:
+            conllu_annotation (str): Conllu anotation of the whole speech
+
+        Returns:
+            float: Number of stopwords per number of tokens
+        """
         text = conllu.parse(conllu_annotation)
         token_counter = 0
         stop_words = 0
@@ -144,6 +167,17 @@ class FeaturesExtractor:
         return sid_score / token_counter
 
     def extract_sid_efficiency(self, conllu_annotation: str, time: float) -> float:
+        """
+        Counts Semantic Idea Efficiency, i.e., SID divided, but divided by speech time (in seconds),
+        not number of tokens. According to Fraser et al. (2018)
+
+        Args:
+            conllu_annotation (str): Conllu annotation of the whole speech
+            time (float): Speaking time in seconds
+
+        Returns:
+            float: Semantic Idea Efficiency
+        """
         sid_score = 0
 
         text_conllu = conllu.parse(conllu_annotation)
@@ -178,6 +212,17 @@ class FeaturesExtractor:
         return score / len(text)
 
     def extract_pid_efficiency(self, conllu_annotation: str, time: float) -> float:
+        """
+        Counts Propositional Idea Efficiency, i.e., PID, but divided by speech time (in seconds),
+        not number of tokens. According to Fraser et al. (2018)
+
+        Args:
+            conllu_annotation (str): Conllu annotation of the whole speech
+            time (float): Speaking time in seconds
+
+        Returns:
+            float: Propositional Idea Efficiency
+        """
         text_conllu = conllu.parse(conllu_annotation)
         pid_score = 0
         for sentence in text_conllu:
@@ -209,7 +254,6 @@ class FeaturesExtractor:
         return length
 
     def _filter_sentence_nsubj(self, sentence: conllu.models.TokenList) -> bool:
-        # TO DO: upgrade it so it won't filter out sentences like "i see the young boy"
         """
         Checks if a sentence contains the subject which lemma is "i" or "you"
         That filter was applied in Sirts et al. (2017)
