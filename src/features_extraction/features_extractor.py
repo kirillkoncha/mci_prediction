@@ -112,6 +112,15 @@ class FeaturesExtractor:
         return stop_words / token_counter
 
     def extract_tree_depth(self, text: str) -> float:
+        """
+        Extracts mean syntactic tree depth of the whole text
+
+        Args:
+            text (str): Conllu annotation of the whole speech
+
+        Returns:
+            float: Average tree depth of all sentences
+        """
         text = conllu.parse(text)
         depth = 0
 
@@ -122,6 +131,15 @@ class FeaturesExtractor:
         return depth / len(text)
 
     def extract_verbs_with_inflections(self, conllu_annotation: str) -> float:
+        """
+        Extracts number of verbs with inflections normalised by token count
+
+        Args:
+            conllu_annotation (str): Conllu annotation of the whole speech
+
+        Returns:
+            float: Number of verbs with inflections normalised by token count
+        """
         token_counter = 0
         verbs_number = 0
 
@@ -136,6 +154,15 @@ class FeaturesExtractor:
         return verbs_number / token_counter
 
     def extract_nouns_with_determiners(self, conllu_annotation: str) -> float:
+        """
+        Extracts number of nouns with determiners normalised by token count
+
+        Args:
+            conllu_annotation (str): Conllu annotation of the whole speech
+
+        Returns:
+            float: Number of nouns with determiners normalised by token count
+        """
         token_counter = 0
         nouns_with_determiners = 0
 
@@ -153,6 +180,17 @@ class FeaturesExtractor:
         return nouns_with_determiners / token_counter
 
     def extract_sid(self, conllu_annotation: str) -> float:
+        """
+        Extracts Semantic Idea Density according to Yancheva and Rudzicz (2016).
+        Information Content Units are already extracted via K-Means clustering (see
+        src.features_extraction.sid_kmeans)
+
+        Args:
+            conllu_annotation (str): Conllu annotation of the whole speech
+
+        Returns:
+            float: Semantic Idea Density normalised by token count
+        """
         sid_score = 0
         token_counter = 0
 
