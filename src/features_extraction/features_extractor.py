@@ -1,4 +1,6 @@
 import ast
+import math
+from collections import defaultdict
 
 import conllu
 import nltk
@@ -70,22 +72,24 @@ class FeaturesExtractor:
         return mean_distance
 
     def extract_mlu(self, conllu_annotation: str) -> float:
+        """
+        Extracts mean number of words in sentences
+
+        Args:
+            conllu_annotation (str): Conllu anotation of the whole speech
+        Returns:
+            float: Mean number of words in a sentence
+        """
         text = conllu.parse(conllu_annotation)
         token_counter = 0
-        morpheme_counter = 0
 
         for sentence in text:
             token_counter += self._get_sentence_length(sentence)
-            for token in sentence:
-                if token["deprel"] != "punct":
-                    morpheme_counter += self.morphemes.parse(token["form"])[
-                        "morpheme_count"
-                    ]
 
         if token_counter == 0:
             return 0.0
 
-        return morpheme_counter / token_counter
+        return token_counter / len(text)
 
     def extract_stop_words(self, conllu_annotation: str) -> float:
         """
@@ -275,9 +279,133 @@ class FeaturesExtractor:
             return 0.0
         return pid_score / time
 
+    def extract_words_per_clause(self, conllu_annotation: str) -> float:
+        """
+        Calculate the mean number of words (excluding punctuation) per clause in English CONLLU text.
+        """
+        sentences = conllu.parse(conllu_annotation)
+        total_content_words = 0
+        total_clauses = 0
+
+        for sentence in sentences:
+            content_words_in_sentence = 0
+            clause_heads = set()
+
+            for token in sentence:
+                if token.get("upos") == "PUNCT":
+                    continue
+
+                content_words_in_sentence += 1
+
+                # Clause heads in English
+                if token["deprel"] == "root":
+                    clause_heads.add(token["id"])
+                elif token["deprel"] in [
+                    "ccomp",
+                    "xcomp",
+                    "advcl",
+                    "acl",
+                    "parataxis",
+                    "csubj",
+                    "csubj:pass",
+                    "acl:relcl",
+                ]:
+                    clause_heads.add(token["head"])
+                elif token["deprel"] == "mark" or (
+                    token["deprel"] == "aux" and token.get("lemma") == "to"
+                ):
+                    clause_heads.add(token["head"])
+
+            # Handle coordination (e.g., "She ran and he left")
+            for token in sentence:
+                if token["deprel"] == "conj" and token["head"] in clause_heads:
+                    clause_heads.add(token["id"])
+
+            # Fallback to root token if no clause heads found
+            if not clause_heads:
+                root_token = next(
+                    (token for token in sentence if token["deprel"] == "root"), None
+                )
+                if root_token:
+                    clause_heads.add(root_token["id"])
+                else:
+                    clause_heads.add(1)  # Emergency fallback
+
+            total_content_words += content_words_in_sentence
+            total_clauses += len(clause_heads) if clause_heads else 1
+
+        if total_clauses == 0:
+            return 0.0
+
+        return total_content_words / total_clauses
+
+    def compute_frazier_score(self, conllu_text):
+        trees = conllu.parse(conllu_text)
+        results = []
+
+        for tree in trees:
+            scores = []
+            token_dict = {token["id"]: token for token in tree}
+
+            for token in tree:
+                score = 0
+                node = token
+
+                while node:
+                    head_id = node["head"]
+                    if head_id == 0:  # Root reached
+                        score += 1.5
+                        break
+
+                    parent = token_dict.get(head_id)
+                    if parent:
+                        siblings = [t for t in tree if t["head"] == head_id]
+                        if (
+                            siblings and siblings[0]["id"] == node["id"]
+                        ):  # Leftmost child
+                            score += 1
+                        else:
+                            break  # Stop at first non-leftmost child
+
+                    node = parent
+
+                scores.append(score)
+
+            total_score = sum(scores)
+            mean_score = total_score / len(scores)
+            three_word_sums = [sum(scores[i : i + 3]) for i in range(len(scores) - 2)]
+            max_three_word_sum = max(three_word_sums) if three_word_sums else 0
+
+            results.append(mean_score)
+
+        overall_mean_score = sum(results) / len(results) if results else 0
+
+        return overall_mean_score
+
+    def calculate_maas_index_from_conllu(self, conllu_annotation: str) -> float:
+        text = conllu.parse(conllu_annotation)
+
+        words = [
+            token["form"].lower()
+            for sentence in text
+            for token in sentence
+            if token["upos"] != "PUNCT"
+        ]
+
+        total_words = len(words)
+        unique_words = len(set(words))
+
+        if total_words == 0 or unique_words == 0:
+            return 0.0
+
+        mi = (math.log(total_words) - math.log(unique_words)) / (
+            math.log(total_words) ** 2
+        )
+        return mi
+
     def _get_sentence_length(self, sentence: conllu.models.TokenList) -> int:
         """
-        Counts how many word tokens are in the sentence
+        Counts how many word tokens are in the sentence. The results are cached
 
         Args:
             sentence (conllu.models.TokenList): Token list of a sentence
@@ -290,6 +418,33 @@ class FeaturesExtractor:
             if token["deprel"] != "punct":
                 length += 1
         return length
+
+    def compute_words_per_clause(self, conllu_text: str):
+        trees = conllu.parse(conllu_text)
+        total_words = 0
+        total_clauses = 0
+
+        for tree in trees:
+            total_words += self._get_sentence_length(tree)
+            total_clauses += sum(
+                1
+                for token in tree
+                if token["deprel"]
+                in {
+                    "root",
+                    "ccomp",
+                    "advcl",
+                    "acl",
+                    "xcomp",
+                    "parataxis",
+                    "conj",
+                    "relcl",
+                }
+            )
+
+        words_per_clause = total_words / total_clauses if total_clauses > 0 else 0
+
+        return words_per_clause
 
     def _filter_sentence_nsubj(self, sentence: conllu.models.TokenList) -> bool:
         """

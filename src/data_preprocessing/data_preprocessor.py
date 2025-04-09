@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from collections import Counter
 from glob import glob
 from string import punctuation
 from typing import Union
@@ -87,6 +88,8 @@ class DataPreprocessor:
         headers = data.headers()[0]
         diagnosis = headers["Participants"]["PAR"]["group"]
         total_speaking_time = 0
+        pause_regex = re.compile(r"\(\.\)|\(\.\.\)|\(\.\.\.\)")
+        pause_counter = {"(.)": 0, "(..)": 0, "(...)": 0}
 
         if diagnosis not in self.allowed_labels:
             return None
@@ -98,6 +101,11 @@ class DataPreprocessor:
         utterances = data.utterances()
         for utterance in utterances:
             if utterance.participant == self.patient_id:
+                text_full = utterance.tiers.get(self.patient_id)
+                if text_full:
+                    matches = pause_regex.findall(text_full)
+                    for match_ in matches:
+                        pause_counter[f"{match_}"] += 1
                 time_marks = utterance.time_marks
                 if time_marks:
                     start_time, end_time = time_marks
@@ -117,6 +125,9 @@ class DataPreprocessor:
             "speaking time (s)": total_speaking_time / 1000,
             "on": on / len(utterances),
             "co": co / len(utterances),
+            "short_pause": pause_counter["(.)"],
+            "mid_pause": pause_counter["(..)"],
+            "long_pause": pause_counter["(...)"],
         }
 
     def get_unique_pos(
