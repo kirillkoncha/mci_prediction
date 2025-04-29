@@ -7,10 +7,11 @@ import nltk
 import numpy as np
 import pandas as pd
 import spacy
-from morphemes import Morphemes
+import torch
 from pycpidr import depid
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_distances
+from transformers import GPT2LMHeadModel, GPT2TokenizerFast
 
 from src.features_extraction.constants import (
     LOW_SPECIFICITY_SENTENCES,
@@ -22,14 +23,20 @@ nltk.download("punkt_tab")
 
 
 class FeaturesExtractor:
-    def __init__(self, sentence_embeddings_model: str = None):
-        self.low_specificity_sentences = LOW_SPECIFICITY_SENTENCES
-        self.sentence_embeddings_model = sentence_embeddings_model
-        self.cluster_words = pd.read_csv(PATH_TO_WORD_CLUSTERS)
-        self.cluster_words["words"] = self.cluster_words["words"].apply(
-            ast.literal_eval
-        )
-        self.sid_icus = []
+    def __init__(
+        self,
+        sentence_embeddings_model: str | None = None,
+        surprisal_model: str | None = None,
+    ):
+        self.low_specificity_sentences: list[str] = LOW_SPECIFICITY_SENTENCES
+        self.sentence_embeddings_model: str | None = sentence_embeddings_model
+        self.surprisal_model: str | None = surprisal_model
+        self.surprisal_tokenizer: transformers.PreTrainedTokenizerFast | None = None
+        self.cluster_words: pd.DataFrame = pd.read_csv(PATH_TO_WORD_CLUSTERS)
+        self.cluster_words["words"]: pd.core.series.Series = self.cluster_words[
+            "words"
+        ].apply(ast.literal_eval)
+        self.sid_icus: list[str | None] = []
 
         for word_list in self.cluster_words["words"].to_list():
             self.sid_icus.extend(word_list)
@@ -37,7 +44,6 @@ class FeaturesExtractor:
         nltk.download("stopwords")
         from nltk.corpus import stopwords
 
-        self.morphemes = Morphemes("./morphemes_data")
         self.stop_words = set(stopwords.words("english"))
 
     def extract_sentence_embeddings(
@@ -70,6 +76,39 @@ class FeaturesExtractor:
         mean_distance = distances[upper_tri_indices].mean()
 
         return mean_distance
+
+    def extract_sentence_surprisal(self, text: str, model: str = "gpt2") -> float:
+        """
+        Extracts mean sentence surprisal of a text
+
+        Args:
+            text (str): Text speech
+            model (str): HuggingFace model path
+
+        Returns:
+            float: Mean sentence suprisal of a text
+        """
+        if self.surprisal_model is None:
+            self.surprisal_model = GPT2LMHeadModel.from_pretrained(model)
+            self.surprisal_model.eval()
+        if self.surprisal_tokenizer is None:
+            self.surprisal_tokenizer = GPT2TokenizerFast.from_pretrained(model)
+
+        inputs = self.surprisal_tokenizer(text, return_tensors="pt")
+        input_ids = inputs.input_ids
+
+        with torch.no_grad():
+            outputs = self.surprisal_model(input_ids, labels=input_ids)
+            loss_per_token = torch.nn.functional.cross_entropy(
+                outputs.logits[:, :-1, :].reshape(-1, outputs.logits.size(-1)),
+                input_ids[:, 1:].reshape(-1),
+                reduction="none",
+            )
+
+        surprisal_per_token = loss_per_token / torch.log(torch.tensor(2.0))
+        mean_surprisal = surprisal_per_token.mean().item()
+
+        return mean_surprisal
 
     def extract_mlu(self, conllu_annotation: str) -> float:
         """

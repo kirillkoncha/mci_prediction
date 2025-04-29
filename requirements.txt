@@ -8,9 +8,9 @@ pandas
 pycpidr
 torch<2.6
 sentence-transformers
+transformers
 nltk
 scikit-learn
 numpy
 fasttext-wheel
 gensim
-morphemes
