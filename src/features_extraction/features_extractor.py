@@ -321,6 +321,12 @@ class FeaturesExtractor:
     def extract_words_per_clause(self, conllu_annotation: str) -> float:
         """
         Calculate the mean number of words (excluding punctuation) per clause in English CONLLU text.
+
+        Args:
+            conllu_annotation (str): Conllu annotation of the whole speech
+
+        Returns:
+            float: mean number of words per clause in a text
         """
         sentences = conllu.parse(conllu_annotation)
         total_content_words = 0
@@ -378,7 +384,17 @@ class FeaturesExtractor:
 
         return total_content_words / total_clauses
 
-    def compute_frazier_score(self, conllu_text):
+    def extract_frazier_score(self, conllu_text):
+        """
+        Extracts Frazier score which quantifies syntactic complexity by scoring nodes based on their 
+        position in dependency tree. Score increases for root nodes and leftmost children.
+
+        Args:
+            conllu_text (str): Conllu annotation of the whole speech
+
+        Returns:
+            float: Overall mean Frazier score across all sentences
+        """
         trees = conllu.parse(conllu_text)
         results = []
 
@@ -400,7 +416,7 @@ class FeaturesExtractor:
                     if parent:
                         siblings = [t for t in tree if t["head"] == head_id]
                         if (
-                            siblings and siblings[0]["id"] == node["id"]
+                                siblings and siblings[0]["id"] == node["id"]
                         ):  # Leftmost child
                             score += 1
                         else:
@@ -412,8 +428,6 @@ class FeaturesExtractor:
 
             total_score = sum(scores)
             mean_score = total_score / len(scores)
-            three_word_sums = [sum(scores[i : i + 3]) for i in range(len(scores) - 2)]
-            max_three_word_sum = max(three_word_sums) if three_word_sums else 0
 
             results.append(mean_score)
 
@@ -421,7 +435,17 @@ class FeaturesExtractor:
 
         return overall_mean_score
 
-    def calculate_maas_index_from_conllu(self, conllu_annotation: str) -> float:
+    def extract_maas_index(self, conllu_annotation: str) -> float:
+        """
+        Computes the Maas lexical diversity index, which considers both the number of unique words 
+        and total words in a text. Lower values indicate higher lexical diversity.
+    
+        Args:
+            conllu_annotation (str): Conllu annotation of the whole speech
+    
+        Returns:
+            float: Maas lexical diversity index of the text
+        """
         text = conllu.parse(conllu_annotation)
 
         words = [
@@ -458,7 +482,16 @@ class FeaturesExtractor:
                 length += 1
         return length
 
-    def compute_words_per_clause(self, conllu_text: str):
+    def compute_words_per_clause(self, conllu_text: str) -> float:
+        """
+        Computes the average number of words per clause in the given CoNLL-U formatted
+        text.
+
+        Args:
+            conllu_text (str): A string representing the CoNLL-U formatted text.
+        Returns:
+            float: The computed average number of words per clause as a float
+        """
         trees = conllu.parse(conllu_text)
         total_words = 0
         total_clauses = 0
