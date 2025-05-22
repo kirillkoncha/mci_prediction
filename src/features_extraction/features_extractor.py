@@ -387,7 +387,8 @@ class FeaturesExtractor:
     def extract_frazier_score(self, conllu_text):
         """
         Extracts Frazier score which quantifies syntactic complexity by scoring nodes based on their 
-        position in dependency tree. Score increases for root nodes and leftmost children.
+        position in dependency tree. Score increases for root nodes and leftmost children. According to
+        Roark et al. (2007).
 
         Args:
             conllu_text (str): Conllu annotation of the whole speech
