@@ -483,7 +483,7 @@ class FeaturesExtractor:
                 length += 1
         return length
 
-    def compute_words_per_clause(self, conllu_text: str) -> float:
+    def extract_words_per_clause(self, conllu_text: str) -> float:
         """
         Computes the average number of words per clause in the given CoNLL-U formatted
         text.
