@@ -19,7 +19,7 @@ class KMeansFeatures:
     def extract_vectors_for_sid(
         self,
         annotations: list[str],
-        output_path: str,
+        output_path: str | None = None,
         return_output: bool = True,
         save_output: bool = False,
     ):
@@ -28,7 +28,7 @@ class KMeansFeatures:
 
         Args:
             annotations (list[str]): List of annotated texts in CoNLL-U format
-            output_path (str): File path to save the output CSV (if save_output is True)
+            output_path (str | None): File path to save the output CSV (if save_output is True)
             return_output (bool, optional): If set to True, return the extracted vectors
             save_output (bool, optional): If set to True, saves the extracted embeddings as a CSV file
 
