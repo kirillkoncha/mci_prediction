@@ -34,8 +34,7 @@ class DataPreprocessor:
         self.ud_annotator = UDAnnotator()
 
     def process_dataset(
-        self, dataset_path: str, output_path: str, return_output: bool = False
-    ) -> Union[pd.DataFrame, None]:
+        self, dataset_path: str, output_path: str, mmse_xlsx_path: str, return_output: bool = False, match_mmse: bool = False) -> Union[pd.DataFrame, None]:
         """
         Process whole dataset. Dataset should have the following structure:
             root
@@ -51,7 +50,9 @@ class DataPreprocessor:
         Args:
             dataset_path (str): Path to folder with dataset
             output_path (str): Path to save results
+            mmse_xlsx_path (str): Path to MMSE scores .xlsx file from DementiaBank
             return_output (bool): Returns results to a variable if is True
+            match_mmse (bool): If True, matches MMSE scores to participants' data. Defaults to False.
 
         Returns:
             pd.DataFrame | None: Returns pd.DataFrame if return_output is set to true
@@ -66,6 +67,9 @@ class DataPreprocessor:
                 data.append(participant_data)
 
         df = pd.DataFrame(data)
+
+        if match_mmse:
+            df = self.match_mmse(df, mmse_xlsx_path)
         df.to_csv(output_path, index=False)
         if return_output:
             return df
@@ -129,6 +133,39 @@ class DataPreprocessor:
             "mid_pause": pause_counter["(..)"],
             "long_pause": pause_counter["(...)"],
         }
+
+    def match_mmse(self, mmse_xlsx_path: str, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Function that matches MMSE scores to participants' data
+
+        Args:
+            mmse_xlsx_path (str): Path to MMSE scores .xlsx file from DementiaBank
+            df (pd.DataFrame): DataFrame with participants' data
+
+        Returns:
+            pd.DataFrame: DataFrame with matched MMSE scores
+        """
+        def get_mmse(row):
+            main_id = row['main_id']
+            sub_id = row['sub_id']
+            mmse_column = f"mmse{sub_id}"
+
+            # Check if the column exists in the "match" sheet
+            if mmse_column in excel_df.columns:
+                result = excel_df.loc[excel_df['id'] == main_id, mmse_column]
+                return result.values[0] if not result.empty else None
+            else:
+                return None
+
+        excel_df = pd.read_excel(mmse_xlsx_path, sheet_name='match')
+        df['main_id'] = df['id'].apply(lambda x: int(x.split('-')[0]))  # Main ID as integer
+        df['sub_id'] = df['id'].apply(lambda x: x.split('-')[1])  # Sub-ID as a string
+        df['mmse'] = df.apply(get_mmse, axis=1)
+        df.drop(columns=['main_id', 'sub_id'], inplace=True)
+        filtered_df = df[df['mmse'].isna()]
+        result = df.merge(filtered_df, on=df.columns.tolist(), how='left', indicator=True)
+        result = result[result['_merge'] == 'left_only'].drop(columns='_merge')
+        return result
 
     def get_unique_pos(
         self, file_path: str, output_json: str, return_output: bool = False
