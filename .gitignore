@@ -1,3 +1,14 @@
 .idea/
 *.DS_STORE
-__pycache__
+*.json
+*.csv
+*.txt
+*__pycache__
+*.bin
+*venv
+vis
+*.png
+*.jpg
+*jpeg
+*morphemes_data
+*ipynb_checkpoints

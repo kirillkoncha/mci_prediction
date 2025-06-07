@@ -1,4 +1,3 @@
-import conllu
 import spacy_udpipe
 from spacy_conll import init_parser
 
@@ -13,7 +12,7 @@ class UDAnnotator:
             include_headers=True,
         )
 
-    def annotate_text(self, text: str) -> conllu.models.SentenceList:
+    def annotate_text(self, text: str) -> str:
         """
         Annotates Universal Dependencies in a given text
 
@@ -25,5 +24,4 @@ class UDAnnotator:
         """
         doc = self.nlp(text)
         conll = doc._.conll_str
-        sentences = conllu.parse(conll)
-        return sentences
+        return conll

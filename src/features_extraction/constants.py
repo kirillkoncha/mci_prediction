@@ -1,28 +1,7 @@
-PID_DEPRELS = (
-    "advcl",
-    "advmod",
-    "amod",
-    "appos",
-    # "cc", is exlcuded in the paper
-    "csubj",
-    "csubjpass",
-    "det",
-    "neg",
-    "npadvmod",
-    "nsubj",
-    "nummod",
-    "poss",
-    "predet",
-    "preconj",
-    "prep",
-    "quantmod",
-    "tmod",
-    "vmod",
-    "case" # justify that adding
-)
+PATH_TO_LOW_SPECIFICITY = "./data/sentences_specificity_filtered.txt"
+PATH_TO_WORD_CLUSTERS = "./data/cluster_words.csv"
 
-SID_NSUBJ_NO = ("it", "this")
-DET_NO = ("a", "an", "the")
+with open(PATH_TO_LOW_SPECIFICITY, "r", encoding="utf-8") as file:
+    sentences = [line.strip() for line in file]
 
-LOW_SPECIFICITY_SENTENCES = ()
-STOP_WORDS = ("so") # to be added more
+LOW_SPECIFICITY_SENTENCES = frozenset(sentences)
