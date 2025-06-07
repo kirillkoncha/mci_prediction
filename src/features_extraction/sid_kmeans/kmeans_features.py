@@ -59,6 +59,8 @@ class KMeansFeatures:
 
         if return_output:
             return vectors_df
+        else:
+            return None
 
     def get_clusters(
         self,
@@ -117,3 +119,5 @@ class KMeansFeatures:
 
         if return_output:
             return cluster_words
+        else:
+            return None
