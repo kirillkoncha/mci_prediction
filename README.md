@@ -1,6 +1,6 @@
 # Automatic Detection of Mild Cognitive Impairment and Alzhemier’s Disease Using Machine Learning
 
-This repository contains code for the Master's Thesis "Automatic Detection of Mild Cognitive Impairment and Alzhemier’s Disease Using Machine Learning" by Kirill Koncha (under Frank Tsiwah and Robert Hartsuiker supervision).
+This repository contains code for the Master's Thesis "Automatic Detection of Mild Cognitive Impairment and Alzhemier’s Disease Using Machine Learning" by Kirill Koncha (under the supervision of Frank Tsiwah and Robert Hartsuiker).
 
 The project consists of different spontenous speech features extractors. The work was conducted with the usage of the [DementiaBank](https://talkbank.org/dementia/) dataset.
 
