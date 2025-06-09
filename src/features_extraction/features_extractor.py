@@ -190,7 +190,7 @@ class FeaturesExtractor:
         for sentence in text_conllu:
             token_counter += self._get_sentence_length(sentence)
             for token in sentence:
-                if token["form"] != token["lemma"]:
+                if token["form"] != token["lemma"] and token["upos"] == "VERB":
                     verbs_number += 1
         if token_counter == 0:
             return 0.0
