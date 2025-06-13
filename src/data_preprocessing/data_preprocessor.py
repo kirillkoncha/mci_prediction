@@ -73,6 +73,8 @@ class DataPreprocessor:
         df.to_csv(output_path, index=False)
         if return_output:
             return df
+        else:
+            return None
 
     def process_file(self, file_path: str) -> Union[dict[str, Union[str, float]], None]:
         """
