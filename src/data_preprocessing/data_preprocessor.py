@@ -93,7 +93,7 @@ class DataPreprocessor:
         data = pylangacq.read_chat(file_path)
         headers = data.headers()[0]
         gender = headers["Participants"]["PAR"]["sex"]
-        age = float(headers["Participants"]["PAR"]["age"].strip(";"))
+        age = float(headers["Participants"]["PAR"]["age"].split(";")[0])
         diagnosis = headers["Participants"]["PAR"]["group"]
         total_speaking_time = 0
         pause_regex = re.compile(r"\(\.\)|\(\.\.\)|\(\.\.\.\)")
