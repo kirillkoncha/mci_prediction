@@ -76,7 +76,7 @@ class DataPreprocessor:
         else:
             return None
 
-    def process_file(self, file_path: str) -> Union[dict[str, Union[str, float]], None]:
+        def process_file(self, file_path: str) -> Union[dict[str, Union[str, float]], None]:
         """
         Process file with participants data (participants should be Controls, MCI, or AD)
 
@@ -92,6 +92,8 @@ class DataPreprocessor:
         co = 0
         data = pylangacq.read_chat(file_path)
         headers = data.headers()[0]
+        gender = headers["Participants"]["PAR"]["sex"]
+        age = float(headers["Participants"]["PAR"]["age"].strip(";"))
         diagnosis = headers["Participants"]["PAR"]["group"]
         total_speaking_time = 0
         pause_regex = re.compile(r"\(\.\)|\(\.\.\)|\(\.\.\.\)")
@@ -126,6 +128,8 @@ class DataPreprocessor:
         return {
             "id": id_,
             "diagnosis": diagnosis,
+            "gender": gender,
+            "age": age,
             "speech": full_speech,
             "annotation": self.ud_annotator.annotate_text(full_speech),
             "speaking time (s)": total_speaking_time / 1000,
